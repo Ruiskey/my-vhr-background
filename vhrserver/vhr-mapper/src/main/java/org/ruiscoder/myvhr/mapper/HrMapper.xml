@@ -46,6 +46,9 @@
             order by hr.id;
 
     </select>
+    <select id="getAllHrsExceptCurrent" resultMap="BaseResultMap">
+        select * from hr where id != #{id};
+    </select>
     <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer">
         select
         <include refid="Base_Column_List"/>

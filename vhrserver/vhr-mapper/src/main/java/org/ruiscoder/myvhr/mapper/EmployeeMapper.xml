@@ -53,6 +53,27 @@
             <result column="posname" property="name"/>
         </association>
     </resultMap>
+    <resultMap id="EmployeeWithSalary" type="org.ruiscoder.myvhr.model.Employee" extends="BaseResultMap">
+        <association property="salary" javaType="org.ruiscoder.myvhr.model.Salary">
+            <id column="sid" property="id" jdbcType="INTEGER"/>
+            <result column="sbasicSalary" property="basicSalary" jdbcType="INTEGER"/>
+            <result column="sbonus" property="bonus" jdbcType="INTEGER"/>
+            <result column="slunchSalary" property="lunchSalary" jdbcType="INTEGER"/>
+            <result column="strafficSalary" property="trafficSalary" jdbcType="INTEGER"/>
+            <result column="sallSalary" property="allSalary" jdbcType="INTEGER"/>
+            <result column="spensionBase" property="pensionBase" jdbcType="INTEGER"/>
+            <result column="spensionPer" property="pensionPer" jdbcType="REAL"/>
+            <result column="screateDate" property="createDate" jdbcType="TIMESTAMP"/>
+            <result column="smedicalBase" property="medicalBase" jdbcType="INTEGER"/>
+            <result column="smedicalPer" property="medicalPer" jdbcType="REAL"/>
+            <result column="saccumulationFundBase" property="accumulationFundBase" jdbcType="INTEGER"/>
+            <result column="saccumulationFundPer" property="accumulationFundPer" jdbcType="REAL"/>
+            <result column="sname" property="name" jdbcType="VARCHAR"/>
+        </association>
+        <association property="department" javaType="org.ruiscoder.myvhr.model.Department">
+            <result column="dname" property="name"/>
+        </association>
+    </resultMap>
     <sql id="Base_Column_List">
         id
         , name, gender, birthday, idCard, wedlock, nationId, nativePlace, politicId, email,
@@ -63,26 +84,28 @@
     <select id="getTotal" resultType="java.lang.Long">
         select count(*) from employee e
         <where>
-            <if test="emp.name !=null and emp.name!=''">
-                and e.name like concat('%', #{keyword}, '%')
-            </if>
-            <if test="emp.politicId !=null">
-                and e.politicId =#{emp.politicId}
-            </if>
-            <if test="emp.nationId !=null">
-                and e.nationId =#{emp.nationId}
-            </if>
-            <if test="emp.jobLevelId !=null">
-                and e.jobLevelId =#{emp.jobLevelId}
-            </if>
-            <if test="emp.posId !=null">
-                and e.posId =#{emp.posId}
-            </if>
-            <if test="emp.engageForm !=null and emp.engageForm!=''">
-                and e.engageForm =#{emp.engageForm}
-            </if>
-            <if test="emp.departmentId !=null">
-                and e.departmentId =#{emp.departmentId}
+            <if test="emp != null">
+                <if test="emp.name !=null and emp.name!=''">
+                    and e.name like concat('%', #{keyword}, '%')
+                </if>
+                <if test="emp.politicId !=null">
+                    and e.politicId =#{emp.politicId}
+                </if>
+                <if test="emp.nationId !=null">
+                    and e.nationId =#{emp.nationId}
+                </if>
+                <if test="emp.jobLevelId !=null">
+                    and e.jobLevelId =#{emp.jobLevelId}
+                </if>
+                <if test="emp.posId !=null">
+                    and e.posId =#{emp.posId}
+                </if>
+                <if test="emp.engageForm !=null and emp.engageForm!=''">
+                    and e.engageForm =#{emp.engageForm}
+                </if>
+                <if test="emp.departmentId !=null">
+                    and e.departmentId =#{emp.departmentId}
+                </if>
             </if>
             <if test="beginDateScope !=null">
                 and e.beginDate between #{beginDateScope[0]} and #{beginDateScope[1]}
@@ -94,12 +117,56 @@
         from employee
     </select>
     <select id="getEmployeeById" resultMap="AllEmployeeInfo">
-        select
-            e.*, p.id as pid, p.name as pname, n.id as nid, n.name as nname, d.id as did,
-            d.name as dname, j.id as jid, j.name as jname, pos.id as posid, pos.name as posname
-        from employee e, nation n, politicsstatus p, department d, joblevel j, position pos
-        where e.nationId=n.id and e.politicId = p.id and e.departmentId = d.id and e.jobLevelId = j.id and e.posId =
-        pos.id and e.id = #{id}
+        select e.*,
+               p.id     as pid,
+               p.name   as pname,
+               n.id     as nid,
+               n.name   as nname,
+               d.id     as did,
+               d.name   as dname,
+               j.id     as jid,
+               j.name   as jname,
+               pos.id   as posid,
+               pos.name as posname
+        from employee e,
+             nation n,
+             politicsstatus p,
+             department d,
+             joblevel j,
+             position pos
+        where e.nationId = n.id
+          and e.politicId = p.id
+          and e.departmentId = d.id
+          and e.jobLevelId = j.id
+          and e.posId =
+              pos.id
+          and e.id = #{id}
+    </select>
+    <select id="getEmployeeByPageWithSalary" resultMap="EmployeeWithSalary">
+        SELECT e.*,d.`name` AS dname,s.`id` AS sid,s.`accumulationFundBase` AS
+        saccumulationFundBase,s.`accumulationFundPer` AS saccumulationFundPer,s.`allSalary` AS
+        sallSalary,s.`basicSalary` AS sbasicSalary,s.`bonus` AS sbonus,s.`createDate` AS screateDate,s.`lunchSalary` AS
+        slunchSalary,s.`medicalBase` AS smedicalBase,s.`medicalPer` AS smedicalPer,s.`name` AS sname,s.`pensionBase` AS
+        spensionBase,s.`pensionPer` AS spensionPer,s.`trafficSalary` AS strafficSalary
+        FROM
+        employee e
+        LEFT JOIN
+        empsalary es
+        ON
+        e.`id`=es.`eid`
+        LEFT JOIN
+        salary s
+        ON
+        es.`sid`=s.`id`
+        LEFT JOIN
+        department d
+        ON
+        e.`departmentId`=d.`id`
+        order by
+        e.id
+        <if test="page !=null and size !=null">
+            limit #{page},#{size}
+        </if>
     </select>
     <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer">
         select
@@ -148,6 +215,9 @@
         from employee
         where id = #{id,jdbcType=INTEGER}
     </delete>
+    <insert id="updateEmployeeSalaryById">
+        replace into empsalary (eid, sid) values (#{eid}, #{sid});
+    </insert>
     <insert id="addEmps">
         insert into employee (name, gender,
         birthday, idCard, wedlock, nationId,
@@ -193,7 +263,8 @@
                 #{contractTerm,jdbcType=DOUBLE}, #{conversionTime,jdbcType=DATE}, #{notWorkDate,jdbcType=DATE},
                 #{beginContract,jdbcType=DATE}, #{endContract,jdbcType=DATE}, #{workAge,jdbcType=INTEGER})
     </insert>
-    <insert id="insertSelective" parameterType="org.ruiscoder.myvhr.model.Employee" useGeneratedKeys="true" keyProperty="id">
+    <insert id="insertSelective" parameterType="org.ruiscoder.myvhr.model.Employee" useGeneratedKeys="true"
+            keyProperty="id">
         insert into employee
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">
